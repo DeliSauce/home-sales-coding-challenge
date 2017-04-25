@@ -2,7 +2,7 @@ const readline = require('readline');
 const fs = require('fs');
 
 const rl = readline.createInterface({
-  input: fs.createReadStream('input.txt')
+  input: fs.createReadStream('test-input.txt')
 });
 
 var arr = [];
@@ -87,7 +87,7 @@ rl.on('line', (line) => {
 
   console.log("total values (N): ", N);
   console.log("window size (K): ", K);
-  console.log("values: ", values);
+  // console.log("values: ", values);
   console.log(solution);
 
   // let windows = new Array(N - K + 1).fill(0);
