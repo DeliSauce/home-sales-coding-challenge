@@ -10,38 +10,48 @@ var arr = [];
 rl.on('line', (line) => {
   arr.push(line);
 }).on('close',() => {
-  const N = arr[0].slice(0, arr[0].indexOf(" "));
-  const K = arr[0].slice(arr[0].indexOf(" ") + 1);
+  const N = parseInt(arr[0].slice(0, arr[0].indexOf(" ")));
+  const K = parseInt(arr[0].slice(arr[0].indexOf(" ") + 1));
 
   const values = arr[1].split(" ").map((num) => parseInt(num));
 
+  console.log("total values (N): ", N);
+  console.log("window size (K): ", K);
+
+  let robust = getRobustSolution(N, K, values);
+  robust.forEach((num) => console.log(num));
+  // let naive = getNaiveSolution(N, K, values);
+  // console.log(compareSolutions(robust, naive));
+});
+
+function compareSolutions(a,b) {
+  if (a.length !== b.length) return false;
+  for(let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+////////////////////// ROBUST SOLUTION /////////////////////
+function getRobustSolution(N, K, values) {
+  let date = new Date();
   const trends = [];
-
-  //trends version 1
-  // for(let i = 0; i < N - 1; i++) {
-  //   if (values[i] > values[i + 1]) {
-  //     trends.push(-1);
-  //   } else if (values[i] < values[i + 1]) {
-  //     trends.push(1);
-  //   } else trends.push(0);
-  // }
-
-  //trends version 2
-  const solution = [];
+  const robustSolution = [];
   let sequenceValue;
-  let sequenceHash = {1: 1,
-    2: 3,
-    3: 6,
-    4: 10,
-    5: 15,
-    6: 21};
 
+  let sequenceHash = {1: 1};
+  for (let i = 2; i <= K; i++) {
+    let nextVal = i + 1;
+    sequenceHash[i] = sequenceHash[i - 1] + i;
+  }
 
+  let correction = 0;
   for(let i = 0; i < N - 1; i++) {
     sequenceValue = segmentTrend(i, i + 1);
-
-    //pop
+    correction = 0;
+    //shift from beginning
     if (i >= K - 1) {
+      correction -= trends[0];
       if (trends[0] >= -1 && trends[0] <= 1) {
         trends.shift();
       } else {
@@ -49,7 +59,7 @@ rl.on('line', (line) => {
       }
     }
 
-    //push
+    //push to end
     if (trends.length === 0) {
       trends.push(sequenceValue);
     } else if (trends[trends.length - 1] * sequenceValue > 0) {
@@ -57,10 +67,14 @@ rl.on('line', (line) => {
     } else {
       trends.push(sequenceValue);
     }
+    correction += trends[trends.length - 1];
 
     //tally
-    if (i >= K - 2) {
+    if (i === K - 2) {
       tallyTotals();
+    }
+    if (i > K - 2) {
+      robustSolution.push(robustSolution[robustSolution.length - 1] + correction);
     }
   }
 
@@ -73,7 +87,7 @@ rl.on('line', (line) => {
         total -= sequenceHash[-n];
       }
     });
-    solution.push(total);
+    robustSolution.push(total);
   }
 
   function segmentTrend(a,b) {
@@ -84,62 +98,55 @@ rl.on('line', (line) => {
     } else
       return 0;
   }
-
-  console.log("total values (N): ", N);
-  console.log("window size (K): ", K);
-  // console.log("values: ", values);
-  console.log(solution);
-
-  // let windows = new Array(N - K + 1).fill(0);
-  // console.log(windows);
-  //
-  // let trend;
-
-  //one possible solution could be to find a range of increase
-  // const up = [];
-  // const down = [];
-  // let prevNum;
-  //
-  // values.forEach((n, i) => {
-  //   if (i === 0) {
-  //     prevNum = n;
-  //   } else {
-  //
-  //   }
-  // });
-
-  // //naive solution
-  // for(let i = 0; i < values.length - K; i++) {
-  //
-  //   for(let j = i + 1; j < i + K; j++) {
-  //     if (j - i === 1) {
-  //       trend = getTrend(i,i + 1);
-  //     } else if (trend !== getTrend(j - 1, j)) {
-  //       trend = 0;
-  //     }
-  //     if (trend === 0) break;
-  //     addToSolution(trend, i, j - i + 1);
-  //   }
-  //
-  // }
-  //
-  //
-  //
-  // //need to figure out this
-  // function addToSolution(sequenceValue, startIndex, segmentLength) {
-  //   for(let i = 0; i <= segmentLength; i++) {
-  //     let index = startIndex + i;
-  //     if (index >= 0 && index < windows.length) windows[index] += sequenceValue;
-  //   }
-  // }
-  //
-  // function getTrend(a,b) {
-  //   if (values[a] < values[b]) {
-  //     return 1;
-  //   } else if (values[a] > values[b]) {
-  //     return -1;
-  //   } else return 0;
-  // }
+  let newDate = new Date();
+  console.log("time: ", (newDate - date)/1000);
+  return robustSolution;
+}
 
 
-});
+//////////////// NAIVE SOLUTION ////////////////
+function getNaiveSolution(N, K, values) {
+  let date = new Date();
+  const naiveSolution = [];
+
+  for(let i = 0; i <= N - K; i++) {
+    updateSolution(values.slice(i, i + K));
+  }
+
+  function updateSolution(range) {
+    let total = 0;
+    let subrangeSize = 2;
+    while(subrangeSize <= range.length) {
+      for(let i = 0; i <= range.length - subrangeSize; i++) {
+        total += rangeTrend(range.slice(i, i + subrangeSize));
+      }
+      subrangeSize++;
+    }
+    naiveSolution.push(total);
+  }
+
+  function rangeTrend(subrange) {
+    let trend;
+    for (let i = 0; i < subrange.length - 1; i++) {
+      if (i === 0) {
+        trend = stepTrend(subrange[i], subrange[i + 1]);
+      } else {
+        if (trend !== stepTrend(subrange[i], subrange[i + 1])) {
+          return 0;
+        }
+      }
+    }
+    return trend;
+  }
+
+  function stepTrend(a,b) {
+    if (a < b) {
+      return 1;
+    } else if (a > b) {
+      return -1;
+    } else return 0;
+  }
+  let newDate = new Date();
+  console.log("time: ", (newDate - date)/1000);
+  return naiveSolution;
+}
