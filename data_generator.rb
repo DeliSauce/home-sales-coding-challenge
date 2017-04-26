@@ -1,10 +1,13 @@
 arr = []
 
-N = 4000
-K = 100
+N = 200
+K = 6
 
+# N.times do
+#   arr.push(rand(150000..2000000).to_s)
+# end
 N.times do
-  arr.push(rand(1..1000).to_s)
+  arr.push(rand(1..1100).to_s)
 end
 
 str = arr.join(" ")
